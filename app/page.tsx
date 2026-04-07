@@ -23,7 +23,13 @@ export default function Home() {
   // Load saved notes
   useEffect(() => {
     const saved = localStorage.getItem("notes");
-    if (saved) setNotes(JSON.parse(saved));
+    if (saved) {
+      try {
+        setNotes(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load notes:", e);
+      }
+    }
   }, []);
 
   // Save notes
@@ -65,13 +71,31 @@ export default function Home() {
       </div>
 
       {/* CALENDAR */}
-      <div className="grid grid-cols-7 gap-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Day Names */}
+        <div className="grid grid-cols-7 gap-4 mb-2">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div key={day} className="text-center text-sm text-gray-400 font-semibold">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-4">
         {days.map((day, i) => {
           const key = format(day, "yyyy-MM-dd");
           const note = notes[key];
           
-          if (search && note && !note.toLowerCase().includes(search.toLowerCase())) {
-            return null;
+          if (search && (!note || !note.toLowerCase().includes(search.toLowerCase()))) {
+            return (
+              <motion.div
+                key={i}
+                className="p-4 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 opacity-30"
+              >
+                <div className="text-sm text-gray-500">{format(day, "dd")}</div>
+              </motion.div>
+            );
           }
 
           return (
@@ -91,6 +115,7 @@ export default function Home() {
             </motion.div>
           );
         })}
+      </div>
       </div>
 
       {/* MODAL */}
