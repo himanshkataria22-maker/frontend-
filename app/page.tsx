@@ -1,65 +1,137 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from "react";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+} from "date-fns";
+import { motion } from "framer-motion";
 
 export default function Home() {
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [search, setSearch] = useState("");
+
+  const monthStart = startOfMonth(new Date());
+  const monthEnd = endOfMonth(new Date());
+  const days = eachDayOfInterval({
+    start: monthStart,
+    end: monthEnd,
+  });
+
+  // Load saved notes
+  useEffect(() => {
+    const saved = localStorage.getItem("notes");
+    if (saved) setNotes(JSON.parse(saved));
+  }, []);
+
+  // Save notes
+  useEffect(() => {
+    localStorage.setItem("notes", JSON.stringify(notes));
+  }, [notes]);
+
+  const saveNote = (text: string) => {
+    if (selectedDate) {
+      setNotes({
+        ...notes,
+        [format(selectedDate, "yyyy-MM-dd")]: text,
+      });
+      setSelectedDate(null);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-6">
+      {/* HEADER */}
+      <motion.div
+        initial={{ opacity: 0, y: -40 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center mb-6"
+      >
+        <h1 className="text-4xl font-bold tracking-wide">🚀 AI Smart Calendar</h1>
+        <p className="text-gray-400 text-sm">Plan smarter. Work faster.</p>
+      </motion.div>
+
+      {/* SEARCH */}
+      <div className="mb-6 flex justify-center">
+        <input
+          type="text"
+          placeholder="🔍 Search notes..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-4 py-2 w-80 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl focus:outline-none"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+      </div>
+
+      {/* CALENDAR */}
+      <div className="grid grid-cols-7 gap-4">
+        {days.map((day, i) => {
+          const key = format(day, "yyyy-MM-dd");
+          const note = notes[key];
+          
+          if (search && note && !note.toLowerCase().includes(search.toLowerCase())) {
+            return null;
+          }
+
+          return (
+            <motion.div
+              key={i}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSelectedDate(day)}
+              className="p-4 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 cursor-pointer shadow-lg hover:shadow-purple-500/20 transition-all glow"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+              <div className="text-sm text-gray-300">{format(day, "dd")}</div>
+              {note && (
+                <div className="mt-2 text-xs text-green-400">
+                  📝 {note.slice(0, 15)}...
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* MODAL */}
+      {selectedDate && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-gray-900 p-6 rounded-xl w-80 border border-white/20"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <h2 className="text-lg mb-3">
+              Add Note ({format(selectedDate, "dd MMM yyyy")})
+            </h2>
+            <textarea
+              id="noteInput"
+              defaultValue={notes[format(selectedDate, "yyyy-MM-dd")] || ""}
+              className="w-full p-2 bg-black border border-gray-600 rounded mb-3 text-white h-24"
+              placeholder="Write something..."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <div className="flex gap-2">
+              <button
+                onClick={() =>
+                  saveNote(
+                    (document.getElementById("noteInput") as HTMLTextAreaElement)
+                      .value
+                  )
+                }
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 py-2 rounded-lg hover:opacity-90"
+              >
+                Save Note
+              </button>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </main>
+      )}
     </div>
   );
 }
